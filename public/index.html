@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>POS UMKM</title>
+</head>
+<body>
+
+<h2>Kasir</h2>
+
+<input id="harga" placeholder="Harga">
+<input id="qty" placeholder="Qty">
+<button onclick="tambah()">Tambah</button>
+
+<h3>Total: <span id="total">0</span></h3>
+
+<select id="metode">
+  <option value="tunai">Tunai</option>
+  <option value="qris">QRIS</option>
+</select>
+
+<button onclick="bayar()">Bayar</button>
+
+<ul id="riwayat"></ul>
+
+<script>
+let total = 0;
+
+function tambah() {
+  let harga = +document.getElementById("harga").value;
+  let qty = +document.getElementById("qty").value;
+  total += harga * qty;
+  document.getElementById("total").innerText = total;
+}
+
+async function bayar() {
+  let metode = document.getElementById("metode").value;
+
+  if (metode === "qris") {
+    let merchant = prompt("Masukkan nama merchant:");
+    
+    let res = await fetch("/verifikasi-qris", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ merchant })
+    });
+
+    let data = await res.json();
+
+    if (data.status !== "valid") {
+      alert("QRIS palsu!");
+      return;
+    }
+  }
+
+  await fetch("/transaksi", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ total, metode })
+  });
+
+  load();
+  total = 0;
+  document.getElementById("total").innerText = 0;
+}
+
+async function load() {
+  let res = await fetch("/transaksi");
+  let data = await res.json();
+
+  let ul = document.getElementById("riwayat");
+  ul.innerHTML = "";
+
+  data.forEach(t => {
+    let li = document.createElement("li");
+    li.innerText = t.waktu + " | " + t.total;
+    ul.appendChild(li);
+  });
+}
+
+load();
+</script>
+
+</body>
+</html>
